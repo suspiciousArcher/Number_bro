@@ -1,6 +1,7 @@
 import telebot
 import webbrowser
 from telebot import types
+import scripts
 
 bot = telebot.TeleBot('6354469033:AAF-ARfr9km4-GJRr011Gi7iv30BNXm0W68')
 
@@ -9,8 +10,22 @@ markup_reply = types.ReplyKeyboardMarkup()
 
 @bot.message_handler(commands=['site'])
 def open_web(message):
-    webbrowser.open('https://ya.ru/')
+    # webbrowser.open('https://ya.ru/')
+    button_1 = types.InlineKeyboardButton('Перейти в поисковик', url='https://ya.ru/')
+    markup_inLine.row(button_1)
+    bot.reply_to(message, 'Идем в браузер?', reply_markup=markup_inLine)
 
+@bot.message_handler(commands=['start'])
+def start(message):
+    db_connect = scripts.ConnectDb()
+
+    sql = 'INSERT INTO users (login, user_id) VALUES ("%s", "%s")' %(message.from_user.first_name, message.from_user.id)
+    otvet = db_connect.registration(sql, message.from_user.id)
+    bot.send_message(message.chat.id, otvet)
+
+@bot.message_handler(commands=['json'])
+def json(message):
+    print(message)
 
 @bot.message_handler(commands=['test'])
 def test(message):

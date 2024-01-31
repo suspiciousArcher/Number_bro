@@ -1,6 +1,4 @@
 import sqlite3
-from mymemopy.translator import MyMemoryTranslate
-
 
 class ConnectDb:
 
@@ -19,7 +17,7 @@ class ConnectDb:
             if otvet == 'Вы уже наш пользователь 🤝':
                 return otvet
             elif otvet == 'Вы зарегистрированны 🎉':
-                connect = sqlite3.connect('data/data_bot.db')
+                connect = sqlite3.connect('../data/data_bot.db')
                 cursor = connect.cursor()
 
                 cursor.execute(sql)
@@ -32,7 +30,7 @@ class ConnectDb:
             return otvet
 
     def get_db(self, sql):
-        connect = sqlite3.connect('data/data_bot.db')
+        connect = sqlite3.connect('./data/data_bot.db')
         cursor = connect.cursor()
 
         cursor.execute(sql)
@@ -40,28 +38,3 @@ class ConnectDb:
         cursor.close()
         connect.close()
         return select
-
-    def test(self, user_id):
-        connect = sqlite3.connect('data/data_bot.db')
-        cursor = connect.cursor()
-
-        cursor.execute('SELECT user_id FROM users')
-        select = cursor.fetchall()
-        otvet = None
-        for i in range(len(select)):
-            if user_id == select[i][0]:
-                otvet = 'Вы уже наш пользователь 🤝'
-                break
-            else:
-                otvet = 'Вы зарегистрированны 🎉'
-        cursor.close()
-        connect.close()
-        return otvet
-
-
-class Translate:
-
-    def translate(self, text):
-        translate = MyMemoryTranslate()
-        res = translate.translate(text, source_lang='en', target_lang='ru')
-        return res

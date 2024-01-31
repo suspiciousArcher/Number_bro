@@ -2,18 +2,22 @@ import telebot
 import webbrowser
 from telebot import types
 import scripts
+import requests
 
 bot = telebot.TeleBot('6354469033:AAF-ARfr9km4-GJRr011Gi7iv30BNXm0W68')
 
 markup_inLine = types.InlineKeyboardMarkup()
 markup_reply = types.ReplyKeyboardMarkup()
 
-@bot.message_handler(commands=['site'])
+@bot.message_handler(commands=['fakt'])
 def open_web(message):
-    # webbrowser.open('https://ya.ru/')
-    button_1 = types.InlineKeyboardButton('Перейти в поисковик', url='https://ya.ru/')
-    markup_inLine.row(button_1)
-    bot.reply_to(message, 'Идем в браузер?', reply_markup=markup_inLine)
+    translate = scripts.Translate()
+    number = message.text.split()
+    type = 'trivia'
+    API = f'http://numbersapi.com/{number[1]}/{type}'
+    print(requests.get(API).text)
+    result = translate.translate(requests.get(API).text)
+    bot.send_message(message.chat.id, result)
 
 @bot.message_handler(commands=['start'])
 def start(message):

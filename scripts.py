@@ -1,4 +1,5 @@
 import sqlite3
+from mymemopy.translator import MyMemoryTranslate
 
 
 class ConnectDb:
@@ -56,3 +57,11 @@ class ConnectDb:
         cursor.close()
         connect.close()
         return otvet
+
+
+class Translate:
+
+    def translate(self, text):
+        translate = MyMemoryTranslate()
+        res = translate.translate(text, source_lang='en', target_lang='ru')
+        return res

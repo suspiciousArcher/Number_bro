@@ -6,9 +6,6 @@ import src.Translate as T
 
 bot = telebot.TeleBot('6354469033:AAF-ARfr9km4-GJRr011Gi7iv30BNXm0W68')
 
-markup_reply = types.ReplyKeyboardMarkup()
-
-
 @bot.message_handler(commands=['start'])
 def start(message):
     db_connect = CDB.ConnectDb()
@@ -38,6 +35,7 @@ def json(message):
 
 @bot.message_handler(commands=['clear'])
 def clear_button(message):
+    markup_reply = types.ReplyKeyboardMarkup()
     button_1 = types.KeyboardButton('YES')
     button_2 = types.KeyboardButton('NO')
     markup_reply.row(button_1, button_2)

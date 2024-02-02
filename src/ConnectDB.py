@@ -38,3 +38,12 @@ class ConnectDb:
         cursor.close()
         connect.close()
         return select
+
+    def set_db(self,sql):
+        connect = sqlite3.connect('../data/data_bot.db')
+        cursor = connect.cursor()
+
+        cursor.execute(sql)
+        connect.commit()
+        cursor.close()
+        connect.close()

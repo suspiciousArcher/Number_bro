@@ -12,7 +12,7 @@ def start(message):
     db_connect = CDB.ConnectDb()
 
     sql = 'INSERT INTO users (login, user_id) VALUES ("%s", "%s")' % (
-    message.from_user.first_name, message.from_user.id)
+        message.from_user.first_name, message.from_user.id)
     otvet = db_connect.registration(sql, message.from_user.id)
     bot.send_message(message.chat.id, otvet)
 
@@ -31,6 +31,25 @@ def fakt_step_two(message):
     markup_inLine.row(button_1)
     markup_inLine.row(button_2, button_3)
     bot.reply_to(message, 'Какого рода факт о числе тебя интересует? \n🧐🧐🧐🧐🧐', reply_markup=markup_inLine)
+
+
+@bot.message_handler(commands=['feedback'])
+def feedback(message):
+    img = open('imag/partners-in-crime-spongebob.gif', 'rb')
+    bot.send_video(message.chat.id, img,
+                   caption='Выскажите свое мнение, постараюсь его учитывать 🫡'
+                           'Нипишите его сообщением и оптравьте⤵️')
+    img.close()
+    bot.register_next_step_handler(message, feedback_message)
+
+
+def feedback_message(message):
+    markup_inLine = types.InlineKeyboardMarkup()
+    button_1 = types.InlineKeyboardButton('Отправить отзыв', callback_data='set_feedback')
+    button_2 = types.InlineKeyboardButton('Подумать еще', callback_data='put_aside_feedback')
+    markup_inLine.row(button_1, button_2)
+    bot.reply_to(message, 'Я благодарен за ваши отзывы. Как положительные так и отрицательные 🤜🏻🫷🏻 ',
+                 reply_markup=markup_inLine)
 
 
 @bot.message_handler(commands=['json'])
@@ -63,253 +82,39 @@ def clear(message):
 @bot.callback_query_handler(func=lambda callback: True)
 def otvet(callback):
     if callback.data == 'math':
-        translate = T.Translate()
-        db_connect = CDB.ConnectDb()
-
-        number = callback.message.reply_to_message.text
-        type = 'math'
-        API = f'http://numbersapi.com/{number}/{type}'
-        fakt = requests.get(API).text
-        get = 'SELECT id FROM chislo WHERE chislo = "%s"' % (number)
-        chek_chislo = db_connect.get_db(get)
-        # print(len(chek_chislo))
-
-        if len(chek_chislo) == 0:
-            set = 'INSERT INTO chislo(chislo) VALUES ("%s")' % (number)
-            db_connect.set_db(set)
-            chek_chislo = db_connect.get_db(get)
-            id_chislo = chek_chislo[0][0]
-            result = translate.translate(fakt)
-            bot.send_message(callback.message.chat.id, result)
-            set = 'INSERT INTO fakt(fakt, translate, type) VALUES ("%s", "%s", "%s")' % (fakt, result, type)
-            db_connect.set_db(set)
-            get = 'SELECT id FROM fakt WHERE type = "%s" AND fakt = "%s"' % (type, fakt)
-            chek_fakt = db_connect.get_db(get)
-            id_fakt = chek_fakt[0][0]
-            set = 'INSERT INTO chislo_fakt(id_chislo, id_fakt) VALUES ("%s", "%s")' % (id_chislo, id_fakt)
-            db_connect.set_db(set)
-
-        elif len(chek_chislo) == 1:
-            id_chislo = chek_chislo[0][0]
-            get = 'SELECT id_chislo, id_fakt FROM chislo_fakt WHERE id_chislo = "%s"' % (id_chislo)
-            chek_fakt = db_connect.get_db(get)
-
-            # print('Получем список свзей числа с фактами: ')
-            # print(chek_fakt)
-            # print(len(chek_fakt))
-
-            cikl = len(chek_fakt) - 1
-
-            # print('Сколько поставить запятых: ')
-            # print(cikl)
-
-            str_id_fakt = ''
-            for i in chek_fakt:
-                if cikl > 0:
-                    str_id_fakt = str_id_fakt + str(i[1]) + ','
-                    cikl -= 1
-                else:
-                    str_id_fakt = str_id_fakt + str(i[1])
-
-            # print('Список id фактов: ')
-            # print(str_id_fakt)
-
-            get = 'SELECT * FROM fakt WHERE id IN (%s) AND type = "%s"' % (str_id_fakt, type)
-
-            # print(get)
-
-            chek_fakt = db_connect.get_db(get)
-
-            # print('Список фактов: ')
-            # print(chek_fakt)
-
-            famous_fakt = False
-            translate_fakt = None
-            id_fakt = None
-            for i in chek_fakt:
-                if fakt == i[1]:
-                    famous_fakt = True
-                    id_fakt = i[0]
-                    if i[2] is not None:
-                        translate_fakt = i[2]
-                    break
-
-            # print('Результат цикла: ')
-            # print(famous_fakt, translate_fakt, id_fakt)
-
-            if famous_fakt:
-                if translate_fakt is not None:
-                    # print('Факт известен и есть перевод: ')
-                    # print(translate_fakt)
-
-                    bot.send_message(callback.message.chat.id, translate_fakt)
-                else:
-                    # print('Факт известен но нет перевода, отправка на перевод')
-
-                    result = translate.translate(fakt)
-                    bot.send_message(callback.message.chat.id, result)
-                    set = 'UPDATE fakt SET translate = "%s" WHERE id = "%s" ' % (result, id_fakt)
-                    db_connect.set_db(set)
-
-            else:
-                # print('Факт не известен')
-
-                result = translate.translate(fakt)
-                bot.send_message(callback.message.chat.id, result)
-                set = 'INSERT INTO fakt(fakt, translate, type) VALUES ("%s", "%s", "%s")' % (fakt, result, type)
-                db_connect.set_db(set)
-                get = 'SELECT id FROM fakt WHERE type = "%s" AND fakt = "%s"' % (type, fakt)
-                chek_fakt = db_connect.get_db(get)
-                id_fakt = chek_fakt[0][0]
-                set = 'INSERT INTO chislo_fakt(id_chislo, id_fakt) VALUES ("%s", "%s")' % (id_chislo, id_fakt)
-                db_connect.set_db(set)
-
-
-
+        chek = security(callback.message.reply_to_message.text)
+        print(chek)
+        if chek:
+            control_callbak(callback.message.chat.id, callback.message.reply_to_message.text, 'math')
+        else:
+            bot.send_message(callback.message.chat.id, 'Это выглядит не как число‼❗️❗️❗️️')
     elif callback.data == 'trivia':
-        translate = T.Translate()
-        db_connect = CDB.ConnectDb()
-
-        number = callback.message.reply_to_message.text
-        type = 'trivia'
-        API = f'http://numbersapi.com/{number}/{type}'
-        fakt = requests.get(API).text
-        get = 'SELECT id FROM chislo WHERE chislo = "%s"' % (number)
-        chek_chislo = db_connect.get_db(get)
-        # print(len(chek_chislo))
-        if len(chek_chislo) == 0:
-            set = 'INSERT INTO chislo(chislo) VALUES ("%s")' % (number)
-            db_connect.set_db(set)
-            chek_chislo = db_connect.get_db(get)
-            id_chislo = chek_chislo[0][0]
-            result = translate.translate(fakt)
-            bot.send_message(callback.message.chat.id, result)
-            set = 'INSERT INTO fakt(fakt, translate, type) VALUES ("%s", "%s", "%s")' % (fakt, result, type)
-            db_connect.set_db(set)
-            get = 'SELECT id FROM fakt WHERE type = "%s" AND fakt = "%s"' % (type, fakt)
-            chek_fakt = db_connect.get_db(get)
-            id_fakt = chek_fakt[0][0]
-            set = 'INSERT INTO chislo_fakt(id_chislo, id_fakt) VALUES ("%s", "%s")' % (id_chislo, id_fakt)
-            db_connect.set_db(set)
-        elif len(chek_chislo) == 1:
-            id_chislo = chek_chislo[0][0]
-            get = 'SELECT id_chislo, id_fakt FROM chislo_fakt WHERE id_chislo = "%s"' % (id_chislo)
-            chek_fakt = db_connect.get_db(get)
-            # print(chek_fakt)
-            cikl = len(chek_fakt) - 1
-            str_id_fakt = ''
-            for i in chek_fakt:
-                if cikl > 0:
-                    str_id_fakt = str_id_fakt + str(i[1]) + ','
-                    cikl -= 1
-                else:
-                    str_id_fakt = str_id_fakt + str(i[1])
-            # print(str_id_fakt)
-            get = 'SELECT * FROM fakt WHERE id IN (%s) AND type = "%s"' % (str_id_fakt, type)
-            chek_fakt = db_connect.get_db(get)
-            # print(chek_fakt)
-            famous_fakt = False
-            translate_fakt = None
-            id_fakt = None
-            for i in chek_fakt:
-                if fakt == i[1]:
-                    famous_fakt = True
-                    id_fakt = i[0]
-                    if i[2] is not None:
-                        translate_fakt = i[2]
-                    break
-            if famous_fakt:
-                if translate_fakt is not None:
-                    bot.send_message(callback.message.chat.id, translate_fakt)
-                else:
-                    result = translate.translate(fakt)
-                    bot.send_message(callback.message.chat.id, result)
-                    set = 'UPDATE fakt SET translate = "%s" WHERE id = "%s" ' % (result, id_fakt)
-                    db_connect.set_db(set)
-
-            else:
-                result = translate.translate(fakt)
-                bot.send_message(callback.message.chat.id, result)
-                set = 'INSERT INTO fakt(fakt, translate, type) VALUES ("%s", "%s", "%s")' % (fakt, result, type)
-                db_connect.set_db(set)
-                get = 'SELECT id FROM fakt WHERE type = "%s" AND fakt = "%s"' % (type, fakt)
-                chek_fakt = db_connect.get_db(get)
-                id_fakt = chek_fakt[0][0]
-                set = 'INSERT INTO chislo_fakt(id_chislo, id_fakt) VALUES ("%s", "%s")' % (id_chislo, id_fakt)
-                db_connect.set_db(set)
-
+        chek = security(callback.message.reply_to_message.text)
+        if chek:
+            control_callbak(callback.message.chat.id, callback.message.reply_to_message.text, 'trivia')
+        else:
+            bot.send_message(callback.message.chat.id, 'Это выглядит не как число❗️❗️❗️')
     elif callback.data == 'year':
-        translate = T.Translate()
+        chek = security(callback.message.reply_to_message.text)
+        if chek:
+            control_callbak(callback.message.chat.id, callback.message.reply_to_message.text, 'year')
+        else:
+            bot.send_message(callback.message.chat.id, 'Это выглядит не как число❗️❗️❗️️')
+    elif callback.data == 'set_feedback':
         db_connect = CDB.ConnectDb()
 
-        number = callback.message.reply_to_message.text
-        type = 'year'
-        API = f'http://numbersapi.com/{number}/{type}'
-        fakt = requests.get(API).text
-        get = 'SELECT id FROM chislo WHERE chislo = "%s"' % (number)
-        chek_chislo = db_connect.get_db(get)
-        # print(len(chek_chislo))
-        if len(chek_chislo) == 0:
-            set = 'INSERT INTO chislo(chislo) VALUES ("%s")' % (number)
-            db_connect.set_db(set)
-            chek_chislo = db_connect.get_db(get)
-            id_chislo = chek_chislo[0][0]
-            result = translate.translate(fakt)
-            bot.send_message(callback.message.chat.id, result)
-            set = 'INSERT INTO fakt(fakt, translate, type) VALUES ("%s", "%s", "%s")' % (fakt, result, type)
-            db_connect.set_db(set)
-            get = 'SELECT id FROM fakt WHERE type = "%s" AND fakt = "%s"' % (type, fakt)
-            chek_fakt = db_connect.get_db(get)
-            id_fakt = chek_fakt[0][0]
-            set = 'INSERT INTO chislo_fakt(id_chislo, id_fakt) VALUES ("%s", "%s")' % (id_chislo, id_fakt)
-            db_connect.set_db(set)
-        elif len(chek_chislo) == 1:
-            id_chislo = chek_chislo[0][0]
-            get = 'SELECT id_chislo, id_fakt FROM chislo_fakt WHERE id_chislo = "%s"' % (id_chislo)
-            chek_fakt = db_connect.get_db(get)
-            # print(chek_fakt)
-            cikl = len(chek_fakt) - 1
-            str_id_fakt = ''
-            for i in chek_fakt:
-                if cikl > 0:
-                    str_id_fakt = str_id_fakt + str(i[1]) + ','
-                    cikl -= 1
-                else:
-                    str_id_fakt = str_id_fakt + str(i[1])
-            # print(str_id_fakt)
-            get = 'SELECT * FROM fakt WHERE id IN (%s) AND type = "%s"' % (str_id_fakt, type)
-            chek_fakt = db_connect.get_db(get)
-            # print(chek_fakt)
-            famous_fakt = False
-            translate_fakt = None
-            id_fakt = None
-            for i in chek_fakt:
-                if fakt == i[1]:
-                    famous_fakt = True
-                    id_fakt = i[0]
-                    if i[2] is not None:
-                        translate_fakt = i[2]
-                    break
-            if famous_fakt:
-                if translate_fakt is not None:
-                    bot.send_message(callback.message.chat.id, translate_fakt)
-                else:
-                    result = translate.translate(fakt)
-                    bot.send_message(callback.message.chat.id, result)
-                    set = 'UPDATE fakt SET translate = "%s" WHERE id = "%s" ' % (result, id_fakt)
-                    db_connect.set_db(set)
-
-            else:
-                result = translate.translate(fakt)
-                bot.send_message(callback.message.chat.id, result)
-                set = 'INSERT INTO fakt(fakt, translate, type) VALUES ("%s", "%s", "%s")' % (fakt, result, type)
-                db_connect.set_db(set)
-                get = 'SELECT id FROM fakt WHERE type = "%s" AND fakt = "%s"' % (type, fakt)
-                chek_fakt = db_connect.get_db(get)
-                id_fakt = chek_fakt[0][0]
-                set = 'INSERT INTO chislo_fakt(id_chislo, id_fakt) VALUES ("%s", "%s")' % (id_chislo, id_fakt)
-                db_connect.set_db(set)
-
+        set = 'INSERT INTO feedback(feedback) VALUES ("%s")' % (callback.message.reply_to_message.text)
+        db_connect.set_db(set)
+        user_id = callback.from_user.id
+        get = 'SELECT id FROM users WHERE user_id = %s' %(user_id)
+        id_user = db_connect.get_db(get)
+        get = 'SELECT id FROM feedback WHERE feedback = "%s"' % (callback.message.reply_to_message.text)
+        id_feedback = db_connect.get_db(get)
+        set = 'INSERT INTO users_feedback(id_users, id_feedback) VALUES (%s, %s)' %(id_user[0][0], id_feedback[0][0])
+        db_connect.set_db(set)
+        bot.send_message(callback.message.chat.id, 'Принято‼️')
+    elif callback.data == 'put_aside_feedback':
+        bot.send_message(callback.message.chat.id, 'Если что надуете пишите...')
 
 def control_callbak(chat_id, chislo, type):
     translate = T.Translate()
@@ -321,8 +126,6 @@ def control_callbak(chat_id, chislo, type):
     fakt = requests.get(API).text
     get = 'SELECT id FROM chislo WHERE chislo = "%s"' % (number)
     chek_chislo = db_connect.get_db(get)
-    # print(len(chek_chislo))
-
     if len(chek_chislo) == 0:
         set = 'INSERT INTO chislo(chislo) VALUES ("%s")' % (number)
         db_connect.set_db(set)
@@ -337,21 +140,11 @@ def control_callbak(chat_id, chislo, type):
         id_fakt = chek_fakt[0][0]
         set = 'INSERT INTO chislo_fakt(id_chislo, id_fakt) VALUES ("%s", "%s")' % (id_chislo, id_fakt)
         db_connect.set_db(set)
-
     elif len(chek_chislo) == 1:
         id_chislo = chek_chislo[0][0]
         get = 'SELECT id_chislo, id_fakt FROM chislo_fakt WHERE id_chislo = "%s"' % (id_chislo)
         chek_fakt = db_connect.get_db(get)
-
-        # print('Получем список свзей числа с фактами: ')
-        # print(chek_fakt)
-        # print(len(chek_fakt))
-
         cikl = len(chek_fakt) - 1
-
-        # print('Сколько поставить запятых: ')
-        # print(cikl)
-
         str_id_fakt = ''
         for i in chek_fakt:
             if cikl > 0:
@@ -359,19 +152,8 @@ def control_callbak(chat_id, chislo, type):
                 cikl -= 1
             else:
                 str_id_fakt = str_id_fakt + str(i[1])
-
-        # print('Список id фактов: ')
-        # print(str_id_fakt)
-
         get = 'SELECT * FROM fakt WHERE id IN (%s) AND type = "%s"' % (str_id_fakt, type)
-
-        # print(get)
-
         chek_fakt = db_connect.get_db(get)
-
-        # print('Список фактов: ')
-        # print(chek_fakt)
-
         famous_fakt = False
         translate_fakt = None
         id_fakt = None
@@ -382,27 +164,15 @@ def control_callbak(chat_id, chislo, type):
                 if i[2] is not None:
                     translate_fakt = i[2]
                 break
-
-        # print('Результат цикла: ')
-        # print(famous_fakt, translate_fakt, id_fakt)
-
         if famous_fakt:
             if translate_fakt is not None:
-                # print('Факт известен и есть перевод: ')
-                # print(translate_fakt)
-
                 bot.send_message(chat_id, translate_fakt)
             else:
-                # print('Факт известен но нет перевода, отправка на перевод')
-
                 result = translate.translate(fakt)
                 bot.send_message(chat_id, result)
                 set = 'UPDATE fakt SET translate = "%s" WHERE id = "%s" ' % (result, id_fakt)
                 db_connect.set_db(set)
-
         else:
-            # print('Факт не известен')
-
             result = translate.translate(fakt)
             bot.send_message(chat_id, result)
             set = 'INSERT INTO fakt(fakt, translate, type) VALUES ("%s", "%s", "%s")' % (fakt, result, type)
@@ -412,6 +182,19 @@ def control_callbak(chat_id, chislo, type):
             id_fakt = chek_fakt[0][0]
             set = 'INSERT INTO chislo_fakt(id_chislo, id_fakt) VALUES ("%s", "%s")' % (id_chislo, id_fakt)
             db_connect.set_db(set)
+
+
+def security(text):
+    mes = str(text).replace(' ', '')
+    security_arr = str((0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
+    security = None
+    for i in mes:
+        if i in security_arr:
+            security = True
+        else:
+            security = False
+            break
+    return security
 
 
 bot.polling(none_stop=True)

@@ -17,7 +17,7 @@ class ConnectDb:
             if otvet == 'Вы уже наш пользователь 🤝':
                 return otvet
             elif otvet == 'Вы зарегистрированны 🎉':
-                connect = sqlite3.connect('../data/data_bot.db')
+                connect = sqlite3.connect('./data/data_bot.db')
                 cursor = connect.cursor()
 
                 cursor.execute(sql)
@@ -40,7 +40,7 @@ class ConnectDb:
         return select
 
     def set_db(self,sql):
-        connect = sqlite3.connect('../data/data_bot.db')
+        connect = sqlite3.connect('./data/data_bot.db')
         cursor = connect.cursor()
 
         cursor.execute(sql)

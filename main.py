@@ -1,3 +1,4 @@
+import random
 import telebot
 from telebot import types
 import requests
@@ -11,10 +12,21 @@ bot = telebot.TeleBot('6354469033:AAF-ARfr9km4-GJRr011Gi7iv30BNXm0W68')
 def start(message):
     db_connect = CDB.ConnectDb()
 
-    sql = 'INSERT INTO users (login, user_id) VALUES ("%s", "%s")' % (
+    sql = 'INSERT INTO users (login, user_id) VALUES ("%s, "%s")' % (
         message.from_user.first_name, message.from_user.id)
     otvet = db_connect.registration(sql, message.from_user.id)
     bot.send_message(message.chat.id, otvet)
+
+
+@bot.message_handler(commands=['help'])
+def help(message):
+    bot.send_message(message.chat.id, 'Приветсвую, кожанный друг 👋\n'
+                                      'Я могу рассказать множество интересных фактов о разных числах.\n'
+                                      'Это мое основное занятие, но я развиваюсь😁' 'Возможно в скором временя буду умень намного больше🤗😤 '
+                                      'На данный момент ты можешь использовать:\n'
+                                      '/fakt - для того что бы узнать факт о числе\n'
+                                      '/feedback - используй что бы высказать свое мнение обо мне, принимаются предложения\n'
+                                      'ну ииии все...')
 
 
 @bot.message_handler(commands=['fakt'])
@@ -52,38 +64,30 @@ def feedback_message(message):
                  reply_markup=markup_inLine)
 
 
-@bot.message_handler(commands=['json'])
-def json(message):
-    print(message)
+#
+# @bot.message_handler(commands=['json'])
+# def json(message):
+#     print(message)
 
+@bot.message_handler(
+    content_types=['text', 'audio', 'document', 'photo', 'sticker', 'video', 'voice', 'location', 'contact',
+                   'animation'])
+def not_understand(message):
+    db_connect = CDB.ConnectDb()
 
-@bot.message_handler(commands=['clear'])
-def clear_button(message):
-    markup_reply = types.ReplyKeyboardMarkup()
-    button_1 = types.KeyboardButton('YES')
-    button_2 = types.KeyboardButton('NO')
-    markup_reply.row(button_1, button_2)
-    bot.reply_to(message, 'Очистить историю чата?', reply_markup=markup_reply)
-    bot.register_next_step_handler(message, clear)
-
-
-def clear(message):
-    if message.text == 'YES' or message.text == 'Да':
-        print(message)
-        for i in range(int(message.message_id + 1)):
-            try:
-                bot.delete_message(message.chat.id, i)
-            except:
-                continue
-    elif message.text == 'NO' or message.text == 'Нет':
-        bot.send_message(message.chat.id, 'Фуф, пронесло...')
+    id_img = str(random.randint(1, 12))
+    arr_text = db_connect.get_db('SELECT otvet FROM not_understand')
+    id_text = random.randint(1, len(arr_text))
+    text = arr_text[id_text - 1][0]
+    img = open(f'imag/{id_img}.gif', 'rb')
+    bot.send_video(message.chat.id, img,
+                   caption=f'{text}\n' 'Попробуйте /help.')
 
 
 @bot.callback_query_handler(func=lambda callback: True)
 def otvet(callback):
     if callback.data == 'math':
         chek = security(callback.message.reply_to_message.text)
-        print(chek)
         if chek:
             control_callbak(callback.message.chat.id, callback.message.reply_to_message.text, 'math')
         else:
@@ -106,15 +110,16 @@ def otvet(callback):
         set = 'INSERT INTO feedback(feedback) VALUES ("%s")' % (callback.message.reply_to_message.text)
         db_connect.set_db(set)
         user_id = callback.from_user.id
-        get = 'SELECT id FROM users WHERE user_id = %s' %(user_id)
+        get = 'SELECT id FROM users WHERE user_id = %s' % (user_id)
         id_user = db_connect.get_db(get)
         get = 'SELECT id FROM feedback WHERE feedback = "%s"' % (callback.message.reply_to_message.text)
         id_feedback = db_connect.get_db(get)
-        set = 'INSERT INTO users_feedback(id_users, id_feedback) VALUES (%s, %s)' %(id_user[0][0], id_feedback[0][0])
+        set = 'INSERT INTO users_feedback(id_users, id_feedback) VALUES (%s, %s)' % (id_user[0][0], id_feedback[0][0])
         db_connect.set_db(set)
         bot.send_message(callback.message.chat.id, 'Принято‼️')
     elif callback.data == 'put_aside_feedback':
         bot.send_message(callback.message.chat.id, 'Если что надуете пишите...')
+
 
 def control_callbak(chat_id, chislo, type):
     translate = T.Translate()

@@ -1,11 +1,19 @@
 import random
 import telebot
-from telebot import types
 import requests
+import os
+from dotenv import load_dotenv
+from telebot import types
+
+
 import src.ConnectDB as CDB
 import src.Translate as T
 
-bot = telebot.TeleBot('6354469033:AAF-ARfr9km4-GJRr011Gi7iv30BNXm0W68')
+
+load_dotenv()
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+
+bot = telebot.TeleBot(BOT_TOKEN)
 
 
 @bot.message_handler(commands=['start'])
